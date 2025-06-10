@@ -21,7 +21,7 @@ services:
       context: ./frontend # Indica dónde está el Dockerfile y el contexto de construcción
       dockerfile: Dockerfile # Nombre del Dockerfile para el frontend
     ports:
-      - "3001:3000" # Mapea el puerto 3000 del host al puerto 3000 del contenedor
+      - "3001:80" # Mapea el puerto 3000 del host al puerto 3000 del contenedor
     volumes:
       - ./frontend:/app # Monta el directorio local 'frontend' en '/app' dentro del contenedor
       - /app/node_modules # Impide que el directorio node_modules local sobreescriba el del contenedor
