@@ -1,0 +1,21 @@
+name: CI/CD Docker Compose # El nombre de tu flujo de trabajo, visible en la pestaña "Actions"
+
+on:
+  push: # Este flujo de trabajo se disparará cada vez que haya un 'push' (subida de código)
+    branches:
+      - main # En la rama 'main'
+      - develop # En la rama 'develop'
+
+jobs:
+  build_and_push_docker_images: # Este es el nombre de tu job
+    runs-on: ubuntu-latest # Especifica que este job se ejecutará en una máquina virtual Ubuntu
+
+
+steps: # Los pasos que este job va a ejecutar
+      # ... (los pasos se añadirán a continuación)
+
+- name: Checkout Repository # Paso 1: Descargar el código de tu repositorio en la máquina del runner
+        uses: actions/checkout@v4 # Usa la acción oficial de GitHub para clonar el repositorio
+
+      - name: Set up Docker Buildx # Paso 2: Configurar Buildx para construir imágenes Docker de forma eficiente
+        uses: docker/setup-buildx-action@v3 # Una acción para configurar Buildx
