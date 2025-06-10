@@ -184,21 +184,20 @@
 
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // Asegúrate de haber instalado axios: npm install axios
-import './App.css'; // Tu archivo CSS para estilos generales
-import './index.css';; // Asegúrate de que Tailwind esté configurado y este archivo exista
+import axios from 'axios';
+import './App.css';
+import './index.css'; // Asegúrate de que este archivo exista en frontend/src/
 
 function App() {
-  const [username, setUsername] = useState(''); // Estado para el nombre de usuario
-  const [password, setPassword] = useState(''); // Estado para la contraseña
-  const [message, setMessage] = useState('');   // Estado para mensajes de feedback al usuario
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Estado para controlar si el usuario está logueado
-  const [currentPage, setCurrentPage] = useState('login'); // Estado para controlar la página actual: 'login', 'dashboard', 'consulta'
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentPage, setCurrentPage] = useState('login');
 
   // URL base de tu API Backend
-  // En desarrollo local: http://localhost:5001
-  // En Docker Compose: http://backend:5001 (configurado en docker-compose.yml)
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+  // *** ¡CAMBIO AQUÍ! Ahora es una cadena vacía para que las peticiones sean relativas ***
+  const apiUrl = ''; // Esto hará que las peticiones sean a /api/login, /api/patients, etc.
 
   // Estados para el formulario de registro de paciente
   const [patientName, setPatientName] = useState('');
@@ -206,23 +205,17 @@ function App() {
   const [patientGender, setPatientGender] = useState('Otro');
   const [patientPhone, setPatientPhone] = useState('');
   const [patientEmail, setPatientEmail] = useState('');
-  const [patients, setPatients] = useState([]); // Estado para almacenar la lista de pacientes
+  const [patients, setPatients] = useState([]);
 
-  /**
-   * Efecto para cargar pacientes al iniciar o cuando se vuelve al dashboard.
-   * Se ejecuta cuando `currentPage` o `isLoggedIn` cambian.
-   */
   useEffect(() => {
     if (currentPage === 'dashboard' && isLoggedIn) {
       fetchPatients();
     }
   }, [currentPage, isLoggedIn]);
 
-  /**
-   * Función para obtener la lista de pacientes desde el backend.
-   */
   const fetchPatients = async () => {
     try {
+      // Las peticiones ahora serán a /api/patients (relativas al host de Nginx)
       const response = await axios.get(`${apiUrl}/api/patients`);
       setPatients(response.data);
       console.log('Pacientes cargados:', response.data);
@@ -232,53 +225,41 @@ function App() {
     }
   };
 
-  /**
-   * Maneja el envío del formulario de inicio de sesión.
-   * @param {string} role - El rol con el que se intenta iniciar sesión (ej. 'user', 'admin').
-   */
   const handleLogin = async (role) => {
-    setMessage('Iniciando sesión...'); // Mensaje de carga
+    setMessage('Iniciando sesión...');
 
     try {
-      // Realiza una petición POST al backend
+      // Las peticiones ahora serán a /api/login (relativas al host de Nginx)
       const response = await fetch(`${apiUrl}/api/login`, {
-        method: 'POST', // Es una petición POST
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json', // Indica que el cuerpo es JSON
+          'Content-Type': 'application/json',
         },
-        // Envía el nombre de usuario, la contraseña y el rol en el cuerpo de la petición
         body: JSON.stringify({ username, password, role }),
       });
 
-      // Parsea la respuesta JSON del backend
       const data = await response.json();
 
-      // Verifica si la respuesta fue exitosa (código de estado 2xx)
       if (response.ok) {
         setMessage(`¡Inicio de sesión exitoso como ${role}! Mensaje: ${data.message}`);
-        setIsLoggedIn(true); // Establece el estado de logueado a true
-        setCurrentPage('dashboard'); // Cambia la página a 'dashboard' (donde está el formulario de paciente)
+        setIsLoggedIn(true);
+        setCurrentPage('dashboard');
         console.log('Login exitoso:', data);
       } else {
-        // Muestra un mensaje de error si la autenticación falla
         setMessage(`Error al iniciar sesión como ${role}: ${data.message || 'Credenciales inválidas'}`);
         console.error('Error de login:', data);
       }
     } catch (error) {
-      // Captura y muestra errores de red o del servidor
       setMessage(`Error de conexión: ${error.message}. Asegúrate de que el backend esté corriendo.`);
       console.error('Error de fetch:', error);
     }
   };
 
-  /**
-   * Maneja el registro de un nuevo usuario.
-   */
   const handleRegister = async () => {
-    setMessage('Registrando usuario...'); // Mensaje de carga
+    setMessage('Registrando usuario...');
 
     try {
-      // Realiza una petición POST al backend para registrar un nuevo usuario
+      // Las peticiones ahora serán a /api/register (relativas al host de Nginx)
       const response = await fetch(`${apiUrl}/api/register`, {
         method: 'POST',
         headers: {
@@ -292,7 +273,6 @@ function App() {
       if (response.ok) {
         setMessage(`¡Registro exitoso! Mensaje: ${data.message}`);
         console.log('Registro exitoso:', data);
-        // Opcional: Podrías limpiar el formulario de login/registro o redirigir
       } else {
         setMessage(`Error al registrar: ${data.message || 'El usuario ya existe o datos inválidos'}`);
         console.error('Error de registro:', data);
@@ -303,35 +283,30 @@ function App() {
     }
   };
 
-  /**
-   * Maneja el envío del formulario de registro de pacientes.
-   */
   const handlePatientSubmit = async (e) => {
-    e.preventDefault(); // Evita que la página se recargue al enviar el formulario
+    e.preventDefault();
     setMessage('Registrando paciente...');
 
     try {
-      // Realiza una petición POST al backend para registrar un paciente
+      // Las peticiones ahora serán a /api/patients (relativas al host de Nginx)
       const response = await axios.post(`${apiUrl}/api/patients`, {
         name: patientName,
-        age: parseInt(patientAge), // Convierte la edad a número entero
+        age: parseInt(patientAge),
         gender: patientGender,
-        contact: { // Objeto de contacto
+        contact: {
           phone: patientPhone,
           email: patientEmail,
         },
       });
 
-      // Verifica el código de estado de la respuesta del backend
-      if (response.status === 201) { // 201 Created es el código de éxito para una nueva creación
+      if (response.status === 201) {
         setMessage(`Paciente ${response.data.patient.name} registrado exitosamente. ID: ${response.data.patient._id}`);
-        // Limpiar los campos del formulario de paciente después del registro exitoso
         setPatientName('');
         setPatientAge('');
         setPatientGender('Otro');
         setPatientPhone('');
         setPatientEmail('');
-        fetchPatients(); // Recargar la lista de pacientes para que el nuevo aparezca en la tabla
+        fetchPatients();
       } else {
         setMessage(`Error al registrar paciente: ${response.data.message || 'Error desconocido'}`);
       }
@@ -339,17 +314,13 @@ function App() {
       console.error('Error al registrar paciente:', error);
       setMessage(`Error de conexión al registrar paciente: ${error.message}.`);
       if (error.response) {
-        // Si el error tiene una respuesta del servidor (ej. 400 Bad Request)
         setMessage(`Error al registrar paciente: ${error.response.data.message || error.message}`);
       }
     }
   };
 
-  // -------------------------------------------------------------------------
-  // Renderizado Condicional de Páginas (Login vs. Dashboard)
-  // -------------------------------------------------------------------------
+  // ... (Resto del código de renderizado, es el mismo) ...
 
-  // Si el usuario no está logueado, muestra la pantalla de Login/Registro
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
@@ -388,33 +359,32 @@ function App() {
 
           <div className="flex flex-col space-y-4">
             <button
-              onClick={() => handleLogin('user')} // Llama a handleLogin con rol 'user'
+              onClick={() => handleLogin('user')}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ease-in-out shadow-md hover:shadow-lg"
             >
               Iniciar Sesión
             </button>
             <button
-              onClick={handleRegister} // Llama a handleRegister
+              onClick={handleRegister}
               className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ease-in-out shadow-md hover:shadow-lg"
             >
               Registrarse
             </button>
           </div>
 
-          {/* Área de Mensajes */}
           {message && (
             <div className="mt-6 p-3 text-center text-sm rounded-lg bg-blue-100 text-blue-800 shadow">
               {message}
             </div>
           )}
 
-          {/* Información sobre la URL del Backend */}
+          {/* Información sobre la URL del Backend (el texto de localhost:5001 ya no es relevante con el proxy) */}
           <div className="mt-8 text-center text-gray-500 text-xs p-2 bg-gray-50 rounded-lg shadow-inner">
-            <p>URL del Backend API (desde contenedor): <code className="font-mono text-gray-700">{apiUrl}</code></p>
-            <p>Para probar, el backend necesita las rutas <code className="font-mono text-gray-700">/api/login</code> y <code className="font-mono text-gray-700">/api/register</code>.</p>
+            <p>El frontend se comunica con el backend a través de Nginx Proxy.</p>
+            <p>Las credenciales de prueba son:</p>
             <p className="mt-2 text-gray-600">
-              * Login exitoso: <code className="font-mono text-gray-700">Usuario=testuser</code>, <code className="font-mono text-gray-700">Contraseña=password123</code> (rol 'user')<br/>
-              * Admin Login: <code className="font-mono text-gray-700">Usuario=admin</code>, <code className="font-mono text-gray-700">Contraseña=admin123</code> (rol 'admin')
+              * Login exitoso: <code className="font-mono text-gray-700">Usuario=testuser</code>, <code className="font-mono text-gray-700">Contraseña=password123</code><br/>
+              * Admin Login: <code className="font-mono text-gray-700">Usuario=admin</code>, <code className="font-mono text-gray-700">Contraseña=admin123</code>
             </p>
           </div>
         </div>
@@ -422,18 +392,17 @@ function App() {
     );
   }
 
-  // Si el usuario está logueado, muestra el Dashboard de Pacientes
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <header className="flex justify-between items-center bg-white shadow-sm p-4 rounded-lg mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard de Pacientes</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Gestión de Pacientes</h1>
         <button
           onClick={() => {
-            setIsLoggedIn(false); // Cierra sesión
+            setIsLoggedIn(false);
             setUsername('');
             setPassword('');
             setMessage('');
-            setCurrentPage('login'); // Vuelve a la página de login
+            setCurrentPage('login');
           }}
           className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-md"
         >
@@ -441,7 +410,6 @@ function App() {
         </button>
       </header>
 
-      {/* Navegación dentro del Dashboard (Registro vs. Consulta) */}
       <nav className="mb-6 flex space-x-4">
         <button
           onClick={() => setCurrentPage('dashboard')}
@@ -457,15 +425,13 @@ function App() {
         </button>
       </nav>
 
-      {/* Área de Mensajes Global del Dashboard */}
       {message && (
         <div className="mt-4 p-3 text-center text-sm rounded-lg bg-blue-100 text-blue-800 shadow mb-6">
           {message}
         </div>
       )}
 
-      {/* Contenido de la página actual (Registro de Paciente o Listado de Pacientes) */}
-      {currentPage === 'dashboard' && ( // Muestra el formulario de registro de paciente
+      {currentPage === 'dashboard' && (
         <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl mx-auto">
           <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Registrar Nuevo Paciente</h2>
           <form onSubmit={handlePatientSubmit} className="space-y-4">
@@ -544,7 +510,7 @@ function App() {
         </div>
       )}
 
-      {currentPage === 'consulta' && ( // Muestra la lista de pacientes
+      {currentPage === 'consulta' && (
         <div className="bg-white p-8 rounded-lg shadow-xl max-w-4xl mx-auto">
           <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Listado de Pacientes</h2>
           {patients.length === 0 ? (
@@ -612,4 +578,5 @@ function App() {
     </div>
   );
 }
+
 export default App;

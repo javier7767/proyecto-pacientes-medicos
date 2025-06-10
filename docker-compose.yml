@@ -1,38 +1,56 @@
-# docker-compose.yml
-version: '3.8' # La advertencia de 'obsolete' se puede ignorar por ahora
+version: '3.8'
 
 services:
   backend:
     build:
-      context: ./backend # Indica dónde está el Dockerfile y el contexto de construcción
-      dockerfile: Dockerfile # Nombre del Dockerfile para el backend
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - "5001:5001" # Mapea el puerto 5001 del host al puerto 5001 del contenedor
+      - "5001:5001"
     volumes:
-      - ./backend:/app # Monta el directorio local 'backend' en '/app' dentro del contenedor
-      - /app/node_modules # Impide que el directorio node_modules local sobreescriba el del contenedor
+      - ./backend:/app
+      - /app/node_modules
     environment:
-      - NODE_ENV=development # Define el entorno para el backend
+      - NODE_ENV=development
+      - NODE_ENV_DB=docker # Para que el backend sepa que la BD está en Docker
     networks:
-      - app-network # Asigna el servicio a una red para comunicación interna
+      - app-network
+    depends_on:
+      - mongodb
 
   frontend:
     build:
-      context: ./frontend # Indica dónde está el Dockerfile y el contexto de construcción
-      dockerfile: Dockerfile # Nombre del Dockerfile para el frontend
+      context: ./frontend
+      dockerfile: Dockerfile
+      args: # <-- ¡CRÍTICO! Pasa REACT_APP_API_URL durante el build del frontend
+        - REACT_APP_API_URL=http://backend:5001 # URL del backend DENTRO de la red de Docker
     ports:
-      - "3001:80" # Mapea el puerto 3000 del host al puerto 3000 del contenedor
+      - "3001:80" # Mapea 3001 del host a 80 del contenedor Nginx
     volumes:
-      - ./frontend:/app # Monta el directorio local 'frontend' en '/app' dentro del contenedor
-      - /app/node_modules # Impide que el directorio node_modules local sobreescriba el del contenedor
-    environment:
-      - NODE_ENV=development # Define el entorno para el frontend
-      - REACT_APP_API_URL=http://backend:5001 # ¡CRÍTICO! URL del backend accesible desde el frontend
+      - ./frontend:/app
+      - /app/node_modules
+    environment: # Variables de entorno para el CONTENEDOR en ejecución
+      - NODE_ENV=development
+      # La variable REACT_APP_API_URL ya fue quemada en el build.
+      # No es estrictamente necesario aquí en runtime, pero no causa daño.
     depends_on:
-      - backend # Asegura que el backend se inicie antes que el frontend
+      - backend
     networks:
-      - app-network # Asigna el servicio a una red para comunicación interna
+      - app-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb_container
+    ports:
+      - "27017:27017" # Mapea 27017 del host a 27017 del contenedor Mongo
+    volumes:
+      - mongodb_data:/data/db # Persistencia de datos de MongoDB
+    networks:
+      - app-network
 
 networks:
-  app-network: # Define una red personalizada para la comunicación entre servicios
+  app-network:
     driver: bridge
+
+volumes:
+  mongodb_data: # Define el volumen nombrado para MongoDB

@@ -1,4 +1,3 @@
-# backend/Dockerfile
 FROM node:18-alpine
 
 WORKDIR /app
@@ -10,6 +9,7 @@ RUN npm install --silent
 
 COPY . .
 
-EXPOSE 5000
+EXPOSE 5001
 
 CMD ["npm", "start"]
+
