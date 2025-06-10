@@ -1,21 +1,72 @@
-name: CI/CD Docker Compose # El nombre de tu flujo de trabajo, visible en la pestaña "Actions"
+name: CI/CD Docker Compose
 
 on:
-  push: # Este flujo de trabajo se disparará cada vez que haya un 'push' (subida de código)
+  push:
     branches:
-      - main # En la rama 'main'
-      - develop # En la rama 'develop'
+      - main
+      - develop
 
 jobs:
-  build_and_push_docker_images: # Este es el nombre de tu job
-    runs-on: ubuntu-latest # Especifica que este job se ejecutará en una máquina virtual Ubuntu
+  build_and_push_docker_images:
+    runs-on: ubuntu-latest
 
+    steps:
+      # Paso 1: Descargar el código de tu repositorio
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-steps: # Los pasos que este job va a ejecutar
-      # ... (los pasos se añadirán a continuación)
+      # Paso 2: Configurar Buildx para construir imágenes Docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-- name: Checkout Repository # Paso 1: Descargar el código de tu repositorio en la máquina del runner
-        uses: actions/checkout@v4 # Usa la acción oficial de GitHub para clonar el repositorio
+      # Paso 3: Iniciar sesión en Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set up Docker Buildx # Paso 2: Configurar Buildx para construir imágenes Docker de forma eficiente
-        uses: docker/setup-buildx-action@v3 # Una acción para configurar Buildx
+      # Paso 4: Construir y empujar la imagen del backend
+      - name: Build and Push Backend Image
+        run: |
+          DOCKER_REPO="tu-usuario-docker/proyecto-pacientes-medicos-backend" # ¡CAMBIA ESTO!
+          TAG="latest"
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            TAG="prod-${{ github.sha }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            TAG="dev-${{ github.sha }}"
+          fi
+          echo "Building backend image: ${DOCKER_REPO}:${TAG}"
+          docker build -t ${DOCKER_REPO}:${TAG} ./backend
+          docker push ${DOCKER_REPO}:${TAG}
+          echo "Image ${DOCKER_REPO}:${TAG} pushed successfully."
+
+      # Paso 5: Construir y empujar la imagen del frontend
+      - name: Build and Push Frontend Image
+        run: |
+          DOCKER_REPO="tu-usuario-docker/proyecto-pacientes-medicos-frontend" # ¡CAMBIA ESTO!
+          TAG="latest"
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            TAG="prod-${{ github.sha }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            TAG="dev-${{ github.sha }}"
+          fi
+          echo "Building frontend image: ${DOCKER_REPO}:${TAG}"
+          docker build -t ${DOCKER_REPO}:${TAG} \
+            --build-arg REACT_APP_API_URL=http://backend:5001 \
+            ./frontend
+          docker push ${DOCKER_REPO}:${TAG}
+          echo "Image ${DOCKER_REPO}:${TAG} pushed successfully."
+
+      # Paso 6 (Opcional): Levantar Docker Compose para pruebas dentro del CI
+      - name: Run Docker Compose (Optional - for testing the composition)
+        run: |
+          echo "Running Docker Compose up to test the composition..."
+          docker compose -f docker-compose.yml up --build -d
+          sleep 30
+          docker ps
+          echo "Testing backend health check..."
+          curl http://localhost:5001/api/saludo || exit 1
+          echo "Testing frontend accessibility..."
+          curl http://localhost:3001 || exit 1
+          docker compose down
