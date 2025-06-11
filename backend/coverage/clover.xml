@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1749601669882" clover="3.2.0">
+  <project timestamp="1749601669882" name="All files">
+    <metrics statements="11" coveredstatements="11" conditionals="16" coveredconditionals="16" methods="2" coveredmethods="2" elements="29" coveredelements="29" complexity="0" loc="11" ncloc="11" packages="1" files="1" classes="1"/>
+    <file name="auth.js" path="/Users/javi776/Desktop/proyecto-pacientes-medicos/backend/utils/auth.js">
+      <metrics statements="11" coveredstatements="11" conditionals="16" coveredconditionals="16" methods="2" coveredmethods="2"/>
+      <line num="11" count="4" type="cond" truecount="5" falsecount="0"/>
+      <line num="12" count="1" type="stmt"/>
+      <line num="13" count="3" type="cond" truecount="5" falsecount="0"/>
+      <line num="14" count="1" type="stmt"/>
+      <line num="16" count="2" type="stmt"/>
+      <line num="28" count="4" type="cond" truecount="2" falsecount="0"/>
+      <line num="29" count="1" type="stmt"/>
+      <line num="30" count="3" type="cond" truecount="4" falsecount="0"/>
+      <line num="31" count="2" type="stmt"/>
+      <line num="33" count="1" type="stmt"/>
+      <line num="36" count="1" type="stmt"/>
+    </file>
+  </project>
+</coverage>
