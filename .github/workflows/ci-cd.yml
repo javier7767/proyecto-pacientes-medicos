@@ -4,66 +4,129 @@ on:
   push:
     branches:
       - main
-      - develop
+      - develop # Esta línea asegura que el workflow se dispare en develop
 
 jobs:
   build_and_push_docker_images:
     runs-on: ubuntu-latest
 
-    steps: # <- Asegúrate de que "steps:" tiene 4 espacios de indentación
-      - name: Checkout Repository # <- Asegúrate de que "- name:" tiene 6 espacios de indentación
-        uses: actions/checkout@v4 # <- Asegúrate de que "uses:" tiene 8 espacios de indentación
+    steps:
+      # 1. Checkout del repositorio
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx # <- Este también debe tener 6 espacios
-        uses: docker/setup-buildx-action@v3 # <- Este también debe tener 8 espacios
+      # 2. Configurar Docker Buildx para builds multi-arquitectura y caché
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub # <- Y así sucesivamente para todos los pasos
+      # 3. Iniciar sesión en Docker Hub (requiere DOCKER_USERNAME y DOCKER_PASSWORD en secrets de GitHub)
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Paso 4: Construir y empujar la imagen del backend
+      # 4. Construir y empujar la imagen del backend a Docker Hub
       - name: Build and Push Backend Image
         run: |
-          DOCKER_REPO="javidocky/proyecto-pacientes-medicos-backend" #
-          TAG="latest"
+          # Define el repositorio de Docker Hub (reemplaza 'javidocky' con tu usuario)
+          DOCKER_REPO="javidocky/proyecto-pacientes-medicos-backend"
+          TAG="latest" # Etiqueta por defecto
+
+          # Define la etiqueta basada en la rama (prod-SHA para main, dev-SHA para develop)
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             TAG="prod-${{ github.sha }}"
           elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
             TAG="dev-${{ github.sha }}"
           fi
+
           echo "Building backend image: ${DOCKER_REPO}:${TAG}"
+          # Construye la imagen del backend desde el Dockerfile en ./backend
           docker build -t ${DOCKER_REPO}:${TAG} ./backend
+          # Empuja la imagen construida a Docker Hub
           docker push ${DOCKER_REPO}:${TAG}
           echo "Image ${DOCKER_REPO}:${TAG} pushed successfully."
 
-      # Paso 5: Construir y empujar la imagen del frontend
+      # 5. Construir y empujar la imagen del frontend a Docker Hub
       - name: Build and Push Frontend Image
         run: |
-          DOCKER_REPO="javidocky/proyecto-pacientes-medicos-frontend" # 
-          TAG="latest"
+          # Define el repositorio de Docker Hub (reemplaza 'javidocky' con tu usuario)
+          DOCKER_REPO="javidocky/proyecto-pacientes-medicos-frontend"
+          TAG="latest" # Etiqueta por defecto
+
+          # Define la etiqueta basada en la rama (prod-SHA para main, dev-SHA para develop)
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             TAG="prod-${{ github.sha }}"
           elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
             TAG="dev-${{ github.sha }}"
           fi
+
           echo "Building frontend image: ${DOCKER_REPO}:${TAG}"
+          # Construye la imagen del frontend, pasando la URL del backend como argumento de build
           docker build -t ${DOCKER_REPO}:${TAG} \
             --build-arg REACT_APP_API_URL=http://backend:5001 \
             ./frontend
+          # Empuja la imagen construida a Docker Hub
           docker push ${DOCKER_REPO}:${TAG}
           echo "Image ${DOCKER_REPO}:${TAG} pushed successfully."
 
-      # Paso 6 (Opcional): Levantar Docker Compose para pruebas dentro del CI
+      # 6. (Opcional) Levantar Docker Compose para pruebas de integración/salud dentro del CI
+      # NOTA: Este paso levantará los contenedores en el runner de GitHub Actions para una prueba rápida.
       - name: Run Docker Compose (Optional - for testing the composition)
         run: |
           echo "Running Docker Compose up to test the composition..."
+          # Levanta todos los servicios definidos en docker-compose.yml en modo detached
           docker compose -f docker-compose.yml up --build -d
+          # Espera un tiempo para que los servicios estén completamente operativos
           sleep 30
+          # Lista los contenedores Docker corriendo
           docker ps
           echo "Testing backend health check..."
+          # Realiza un curl al endpoint de salud del backend. Si falla, el paso falla.
           curl http://localhost:5001/api/saludo || exit 1
           echo "Testing frontend accessibility..."
+          # Realiza un curl al endpoint del frontend. Si falla, el paso falla.
           curl http://localhost:3001 || exit 1
+          # Baja los contenedores después de las pruebas
           docker compose down
+
+      # 7. Instalar dependencias para ESLint en el Backend
+      - name: Install Backend Dependencies for Lint
+        run: npm install
+        working-directory: ./backend # Ejecuta el comando en el directorio del backend
+
+      # 8. Ejecutar ESLint en el Backend para análisis estático de código
+      - name: Run Backend ESLint
+        run: npm run lint
+        working-directory: ./backend # Ejecuta el comando en el directorio del backend
+
+      # 9. Instalar dependencias para ESLint en el Frontend
+      - name: Install Frontend Dependencies for Lint
+        run: npm install
+        working-directory: ./frontend # Ejecuta el comando en el directorio del frontend
+
+      # 10. Ejecutar ESLint en el Frontend para análisis estático de código
+      - name: Run Frontend ESLint
+        run: npm run lint
+        working-directory: ./frontend # Ejecuta el comando en el directorio del frontend
+
+      # 11. Instalar dependencias para las pruebas unitarias del Backend
+      - name: Install Backend Dependencies for Tests
+        run: npm install
+        working-directory: ./backend # Ejecuta el comando en el directorio del backend
+
+      # 12. Ejecutar las pruebas unitarias del Backend con Jest
+      - name: Run Backend Unit Tests
+        run: npm test
+        working-directory: ./backend # Ejecuta el comando en el directorio del backend
+
+      # 13. Subir el reporte de cobertura de código a Codecov (Requiere Codecov token en secrets de GitHub)
+      # NOTA: Asegúrate de que tu Jest config esté generando el reporte lcov.info
+      - name: Upload Code Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # Token de Codecov si es privado
+          directory: ./backend/coverage # Directorio donde Jest guarda el reporte
+          flags: backend # Bandera opcional para Codecov
+          name: codecov-backend # Nombre de la ejecución en Codecov
+
